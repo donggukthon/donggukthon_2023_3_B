@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/v1/', include('fishbread.urls')),
     path('api/v1/', include('charity.urls')),
     path('badge/', include('badge.urls'))
+
 ]
