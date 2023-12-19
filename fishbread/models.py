@@ -8,4 +8,4 @@ class Fishbread(models.Model):
     name = models.CharField(max_length=20)
     price = models.IntegerField(default=0)
     day = models.IntegerField(default=0)
-    isDonated = models.BooleanField(default=False) # 기부되었는지ㅈ
+    isDonated = models.BooleanField(default=False) # 기부되었는지
