@@ -1,7 +1,15 @@
 from rest_framework import serializers
 from .models import User
+from fishbread.models import Fishbread
 from fishbread.serializers import FishbreadSerializer
 from badge.serializers import BadgeSerializer
+
+# 붕어빵 제작 
+class FishbreadCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fishbread
+        fields = ['charity', 'price', 'start_day', 'end_day', 'isDonated', 'fishbreadtype', 'user']
+
 
 class UserBankSerializer(serializers.ModelSerializer):
 
@@ -32,7 +40,14 @@ class UserFishbreadSerializer(serializers.ModelSerializer):
                 
     class Meta:
         model = User
-        fields = ['fishbread']
+        fields = ['fishbreadtype']
+
+
+class FishbreadCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fishbread
+        fields = ['charity', 'price', 'start_day', 'end_day', 'isDonated', 'fishbreadtype']
+
 
 class UserBadgeSerializer(serializers.ModelSerializer):
     badges = serializers.SerializerMethodField(read_only=True)
