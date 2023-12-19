@@ -1,5 +1,6 @@
 import requests
 import jwt
+import random
 from json.decoder import JSONDecodeError
 
 from django.shortcuts import redirect, get_object_or_404
@@ -19,8 +20,8 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.models import SocialAccount
 
 from .models import User
-from .serializers import UserBankSerializer, UserSerializer, UserDateSerializer, UserFishbreadSerializer, UserBadgeSerializer
-
+from fishbread.models import *
+from .serializers import *
 
 from social_django.utils import psa
 from rest_framework.response import Response
@@ -247,6 +248,15 @@ class UserFishbreadViewSet(generics.RetrieveAPIView):
     def get_object(self):
         return get_object_or_404(User, id=self.request.user.id)
     
+class UserCreateFishbreadViewSet(generics.CreateAPIView):
+    serializer_class = FishbreadCreateSerializer
+    
+    def perform_create(self, serializer):
+        fishbreadtype_id = random.randrange(1,5)
+        fishbreadtype = FishbreadType.objects.get(id=fishbreadtype_id)  # 해당 id의 FishbreadType 가져오기
+        serializer.save(user=self.request.user, fishbreadtype=fishbreadtype)
+
+
 class UserBadgeViewSet(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserBadgeSerializer
