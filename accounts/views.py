@@ -34,22 +34,23 @@ def google_login(request):
     return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&response_type=code&redirect_uri={GOOGLE_CALLBACK_URI}&scope={scope}")
 
 def google_callback(request):
-    client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
-    client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-    print(client_id, client_secret)
-    code = request.GET.get('code')
-    """
-    Access Token Request
-    """
-    token_req = requests.post(f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={GOOGLE_CALLBACK_URI}&state={state}")
-    token_req_json = token_req.json()
-    error = token_req_json.get("error")
-    if error is not None:
-        raise JSONDecodeError(error)
-    access_token = token_req_json.get('access_token')
+    # client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
+    # client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
+    # print(client_id, client_secret)
+    # code = request.GET.get('code')
+    # """
+    # Access Token Request
+    # """
+    # token_req = requests.post(f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={GOOGLE_CALLBACK_URI}&state={state}")
+    # token_req_json = token_req.json()
+    # error = token_req_json.get("error")
+    # if error is not None:
+    #     raise JSONDecodeError(error)
+    # access_token = token_req_json.get('access_token')
     """
     Email Request
     """
+    access_token = request.data.get("access_token")
     # access_token = request.data.get("access_token")
     email_req = requests.get(
     f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={access_token}")

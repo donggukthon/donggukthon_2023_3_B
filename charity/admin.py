@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Foundation
+from .models import Charity
 
 # Register your models here.
-admin.site.register(Foundation)
+admin.site.register(Charity)
