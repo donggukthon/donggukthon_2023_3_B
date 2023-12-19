@@ -1,4 +1,5 @@
 import requests
+import jwt
 from json.decoder import JSONDecodeError
 
 from django.shortcuts import redirect, get_object_or_404
@@ -18,7 +19,54 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.models import SocialAccount
 
 from .models import User
-from .serializers import UserBankSerializer, UserSeriazlier, UserDateSerializer, UserFishbreadSerializer
+from .serializers import UserBankSerializer, UserSerializer, UserDateSerializer, UserFishbreadSerializer, UserBadgeSerializer
+
+
+from social_django.utils import psa
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+
+
+@api_view(['POST'])
+@psa('social:complete')
+def register_by_access_token(request, backend):
+    token = request.data.get('token')
+    print(token)
+    user = request.backend.do_auth(token)
+
+    if user:
+        # 사용자가 이미 존재하는 경우 로그인 처리
+        # 여기서 JWT 토큰 발행 등의 추가 로직을 구현할 수 있습니다.
+        return Response({'success': 'User authenticated', 'user': user.username})
+    else:
+        # 사용자가…
+        return Response({'error': 'Authentication Failed'})
+
+class RegisterUserFromJWT(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        jwt_token = request.data.get('token')  # 프론트에서 전달한 JWT 토큰
+
+        try:
+            decoded_token = jwt.decode(jwt_token,'317787650438-melnlpu3vcr53d2l4oc2e22f7jg8ra98.apps.googleusercontent.com', algorithms=['RS256'])  # 토큰 디코딩)
+            email = decoded_token.get('email')
+            print(email)
+            name = decoded_token.get('name')
+            print()
+
+            # JWT에서 추출한 정보로 새로운 사용자 생성
+            new_user = User.objects.create(email=email, name=name)
+            serializer = UserSerializer(new_user)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Expired token'}, status=status.HTTP_400_BAD_REQUEST)
+        except jwt.InvalidTokenError:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 state = getattr(settings, 'STATE')
 
@@ -34,23 +82,27 @@ def google_login(request):
     return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&response_type=code&redirect_uri={GOOGLE_CALLBACK_URI}&scope={scope}")
 
 def google_callback(request):
-    # client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
-    # client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
-    # print(client_id, client_secret)
-    # code = request.GET.get('code')
-    # """
-    # Access Token Request
-    # """
-    # token_req = requests.post(f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={GOOGLE_CALLBACK_URI}&state={state}")
-    # token_req_json = token_req.json()
-    # error = token_req_json.get("error")
-    # if error is not None:
-    #     raise JSONDecodeError(error)
-    # access_token = token_req_json.get('access_token')
+    client_id = getattr(settings, "SOCIAL_AUTH_GOOGLE_CLIENT_ID")
+    client_secret = getattr(settings, "SOCIAL_AUTH_GOOGLE_SECRET")
+    print(client_id, client_secret)
+    code = request.GET.get('code')
+    """
+    Access Token Request
+    """
+    token_req = requests.post(f"https://oauth2.googleapis.com/token?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={GOOGLE_CALLBACK_URI}&state={state}")
+    token_req_json = token_req.json()
+    error = token_req_json.get("error")
+    if error is not None:
+        raise JSONDecodeError(error)
+    access_token = token_req_json.get('access_token')
+    print(access_token)
     """
     Email Request
     """
-    access_token = request.data.get("access_token")
+    print("함수호출")
+    # print(request.data)
+    # code = request.data.get("code")
+    # access_token = request.data.get("access_token")
     # access_token = request.data.get("access_token")
     email_req = requests.get(
     f"https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={access_token}")
@@ -76,6 +128,7 @@ def google_callback(request):
             return JsonResponse({'err_msg': 'no matching social type'}, status=status.HTTP_400_BAD_REQUEST)
         # 기존에 Google로 가입된 유저
         data = {'access_token': access_token, 'code': code}
+        # data = {'code': code}
         print(data)
         accept = requests.post(f"{BASE_URL}accounts/google/login/finish/", data=data)
         accept_status = accept.status_code
@@ -91,6 +144,7 @@ def google_callback(request):
     except User.DoesNotExist:
         # 기존에 가입된 유저가 없으면 새로 가입
         data = {'access_token': access_token, 'code': code}
+        # data = {'code': code}
 
         accept = requests.post(f"{BASE_URL}accounts/google/login/finish/", data=data)
 
@@ -157,7 +211,6 @@ class GoogleAccessView(APIView):
 class GoogleLogin(SocialLoginView):
     adapter_class = google_view.GoogleOAuth2Adapter
     callback_url = GOOGLE_CALLBACK_URI
-    permission_classes = [AllowAny]
     client_class = OAuth2Client
 
 
@@ -167,7 +220,7 @@ class GoogleLogin(SocialLoginView):
         
 class UserViewSet(generics.RetrieveAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSeriazlier
+    serializer_class = UserSerializer
     
     def get_object(self):
         return get_object_or_404(User, id=self.request.user.id)
@@ -187,11 +240,18 @@ class UserDateViewSet(generics.UpdateAPIView):
         return get_object_or_404(User, id=self.request.user.id)
 
 
-class UserFishbreadViewSet(generics.ListAPIView):
+class UserFishbreadViewSet(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserFishbreadSerializer
 
-    def get_qureryset(self):
+    def get_object(self):
+        return get_object_or_404(User, id=self.request.user.id)
+    
+class UserBadgeViewSet(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserBadgeSerializer
+
+    def get_object(self):
         return get_object_or_404(User, id=self.request.user.id)
     
 

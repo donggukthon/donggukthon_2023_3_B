@@ -22,10 +22,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('dj_rest_auth.urls')),
     path('accounts/', include('allauth.urls')),
-    path('accounts/', include('accounts.urls')),
+    path('api/v1/', include('accounts.urls')),
+    path('accounts/', include('social_django.urls', namespace='social')),
     
     path('api/v1/', include('fishbread.urls')),
     path('api/v1/', include('charity.urls')),
-    path('badge/', include('badge.urls'))
+    path('api/v1/', include('badge.urls'))
 
 ]

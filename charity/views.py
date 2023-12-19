@@ -16,7 +16,7 @@ def charity_list(request):
         
 @api_view(['GET'])
 def charity_detail(request, id):
-    charity = get_object_or_404(Charity, charity_id=id)
+    charity = get_object_or_404(Charity, id=id)
 
     if request.method == 'GET':
         serializer = CharitySerializer(charity)
