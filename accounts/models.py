@@ -1,54 +1,55 @@
 from django.db import models
 from badge.models import Badge
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 class UserManager(BaseUserManager):
-    """
-    Custom user model manager where email is the unique identifiers
-    for authentication instead of usernames.
-    """
-
-    def create_user(self, email, password, **extra_fields):
-        """
-        Create and save a User with the given email and password.
-        """
+    def create_user(self, email, password, **kwargs):
         if not email:
-            raise ValueError(_('The Email must be set'))
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+            raise ValueError('Users must have an email address')
+        user = self.model(
+            email=email,
+        )
         user.set_password(password)
-        user.save()
+        user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password, **extra_fields):
-        """
-        Create and save a SuperUser with the given email and password.
-        """
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError(_('Superuser must have is_staff=True.'))
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError(_('Superuser must have is_superuser=True.'))
-        return self.create_user(email, password, **extra_fields)
+def create_superuser(self, email=None, password=None, **extra_fields):
+    """
+    주어진 이메일, 비밀번호 등 개인정보로 User 인스턴스 생성
+    단, 최상위 사용자이므로 권한을 부여
+    """
+    superuser = self.create_user(
+        email=email,
+        password=password,
+    )
     
-class User(AbstractUser):
-    username = None
-    email = models.EmailField(unique=True, max_length=255)
-    name = models.CharField(max_length=100)
-    holder = models.CharField(max_length=20)
-    bankname = models.CharField(max_length=20)
-    account_num = models.CharField(max_length=100)
-    date = models.CharField(max_length=50)
-    badge = models.ManyToManyField(Badge, blank=True)
+    superuser.is_staff = True
+    superuser.is_superuser = True
+    superuser.is_active = True
+    
+    superuser.save(using=self._db)
+    return superuser
+    
+class User(AbstractBaseUser, PermissionsMixin):
+    
+    email = models.EmailField(max_length=30, unique=True, null=False, blank=False)
+    # name = models.CharField(max_length=100, null=False, blank=False)
+    is_superuser = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    # holder = models.CharField(max_length=20, null=True)
+    # bankname = models.CharField(max_length=20, null=True)
+    # account_num = models.CharField(max_length=100, null=True)
+#     # date_list = ArrayField(models.CharField(max_length=20), blank=True)
+#     # date_list = models.CharField(max_length=30)
+    # date = models.CharField(max_length=30, null=True)
+    # badge = models.ManyToManyField(Badge, blank=True)
+    # fishbread = models.ManyToManyField(Fishbread, blank=True)
 
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-
+	# 헬퍼 클래스 사용
     objects = UserManager()
 
-    def __str__(self):
-        return self.email
+	# 사용자의 username field는 email으로 설정 (이메일로 로그인)
+    USERNAME_FIELD = 'email'
