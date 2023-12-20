@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from badge.models import Badge
 from fishbread.models import Fishbread
 from fishbread.serializers import FishbreadSerializer
 from badge.serializers import BadgeSerializer
@@ -32,38 +33,38 @@ class UserSerializer(serializers.ModelSerializer):
 
 # 유저가 가진 붕어빵 
 class UserFishbreadSerializer(serializers.ModelSerializer):
-    fishbread = serializers.SerializerMethodField(read_only=True)
-    def get_fishbread(self, instance):
-        fishbread = instance.fishbread.filter(isDonated=False).first()
+    fishbreads = serializers.SerializerMethodField(read_only=True)
+    def get_fishbreads(self, instance):
+        fishbread = instance.fishbreads.filter(isDonated=False).first()
         serializer = FishbreadSerializer(fishbread)
         return serializer.data
                 
     class Meta:
         model = User
-        fields = ['fishbreadtype']
-
+        fields = ['fishbreads']
 
 class FishbreadCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fishbread
         fields = ['charity', 'price', 'start_day', 'end_day', 'isDonated', 'fishbreadtype']
 
-
 class UserBadgeSerializer(serializers.ModelSerializer):
-    badges = serializers.SerializerMethodField(read_only=True)
+    badges = serializers.SerializerMethodField()
+
     def get_badges(self, instance):
-        badges = instance.badge.all()
-        if badges.exists():
-            serializer = BadgeSerializer(badges, many=True)
-            return serializer.data
-        return None
-    
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if data['badges'] is None:
-            del data['badges']
-        return data
+        user_badge_ids = set(instance.badge.values_list('id', flat=True))
+        all_badges = Badge.objects.all()
+
+        serialized_badges = []
+        for badge in all_badges:
+            badge_data = {
+                'id': badge.id,
+                'image': badge.image1.url if badge.id in user_badge_ids else badge.image2.url
+            }
+            serialized_badges.append(badge_data)
+
+        return serialized_badges
 
     class Meta:
         model = User
-        fields = ['badges']
+        fields = ['badges',]

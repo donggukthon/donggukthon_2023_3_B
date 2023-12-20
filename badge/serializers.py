@@ -6,4 +6,4 @@ class BadgeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Badge
-        fields = ['id', 'name', 'image']
+        fields = ['id']
