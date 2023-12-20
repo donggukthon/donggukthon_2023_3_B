@@ -20,7 +20,9 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.models import SocialAccount
 
 from .models import User
+from badge.models import Badge
 from fishbread.models import *
+from fishbread.serializers import *
 from .serializers import *
 
 from social_django.utils import psa
@@ -240,7 +242,7 @@ class UserDateViewSet(generics.UpdateAPIView):
     def get_object(self):
         return get_object_or_404(User, id=self.request.user.id)
 
-
+# 유저 붕어빵 정보 조회
 class UserFishbreadViewSet(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserFishbreadSerializer
@@ -255,7 +257,9 @@ class UserCreateFishbreadViewSet(generics.CreateAPIView):
         fishbreadtype_id = random.randrange(1,5)
         fishbreadtype = FishbreadType.objects.get(id=fishbreadtype_id)  # 해당 id의 FishbreadType 가져오기
         serializer.save(user=self.request.user, fishbreadtype=fishbreadtype)
-
+        return Response(data={
+            "status" : 201
+        },status=status.HTTP_201_CREATED)
 
 class UserBadgeViewSet(generics.ListAPIView):
     queryset = User.objects.all()
@@ -263,45 +267,35 @@ class UserBadgeViewSet(generics.ListAPIView):
 
     def get_object(self):
         return get_object_or_404(User, id=self.request.user.id)
+
+# 기부하기
+class UserDonateViewSet(APIView):
+    def post(self, request):
+        charity_id = request.data.get('charity_id')
+        charity = get_object_or_404(Charity, id=charity_id)
+        charity.count += 1
+        charity.save()
+
+        fishbread_id = request.data.get('fishbread_id')
+        fishbread = get_object_or_404(Fishbread, id=fishbread_id)
+
+        fishbread.charity.add(charity)
+        fishbread.isDonated = True
+        fishbread.save()
+
+        badge_id = random.randrange(1,10)
+        badge = Badge.objects.get(id=badge_id)
+
+        user = get_object_or_404(User, id=self.request.user.id)
+        user.badge.add(badge)
+        user.save()
+
+        return Response({'message': '기부 업데이트 완료'})        
     
 
+class UserHistoryViewSet(APIView):
+    def get(self, request):
+        user_fishbreads = Fishbread.objects.filter(user=request.user, isDonated=True)
+        serializer  = FishbreadHistorySerializer(user_fishbreads, many=True)
+        return Response(serializer.data)
 
-# from rest_framework.response import Response
-# from rest_framework.decorators import api_view
-
-# from .models import User
-# from fishbread.models import Fishbread
-# # from .serializers import UserSerializer
-# from fishbread.serializers import FishbreadSerializer
-
-# from django.shortcuts import get_object_or_404
-
-# # Create your views here.
-# @api_view(['GET', 'POST'])
-# def fishbread_info(request):
-
-#     if request.method == 'GET':
-#         fishbreads = Fishbread.objects.all()
-#         serializer = FishbreadSerializer(fishbreads, many=True)
-#         return Response(data=serializer.data)
-    
-#     if request.method == 'POST':
-#         serializer = FishbreadSerializer(data=request.data)
-#         if serializer.is_valid(raise_exception=True):
-#             serializer.save()
-#             return Response(data=serializer.data)
-
-# @api_view(['GET', 'POST'])
-# def fishbread_detail(request, id):
-#     user = get_object_or_404(User, user_id=id)
-
-#     if request.method == 'GET':
-#         fishbreads = Fishbread.objects.filter(user_id=user)
-#         serializer = FishbreadSerializer(fishbreads, many=True)
-#         return Response(data=serializer.data)
-    
-#     elif request.method == 'POST':
-#         serializer = FishbreadSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#         return Response(serializer.data)

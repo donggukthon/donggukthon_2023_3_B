@@ -20,7 +20,7 @@ class Fishbread(models.Model):
     charity = models.ManyToManyField(Charity, blank=True)
     price = models.IntegerField(default=0)
     start_day = models.DateField(auto_now_add=True)
-    end_day = models.DateField()
+    end_day = models.DateField(null=True)
     isDonated = models.BooleanField(default=False) # 기부되었는지
     fishbreadtype = models.ForeignKey(FishbreadType, on_delete=models.CASCADE, related_name='fishbread')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fishbreads')

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from . import views
-from .views import UserBankViewSet, UserViewSet, UserDateViewSet, UserFishbreadViewSet, RegisterUserFromJWT, UserBadgeViewSet
+from .views import *
 
 app_name = 'accounts'
 
@@ -17,4 +17,7 @@ urlpatterns = [
     path('date', UserDateViewSet.as_view(), name='date'),
     path('fishbread', UserFishbreadViewSet.as_view(), name='fishbread'),
     path('badges', UserBadgeViewSet.as_view(), name='badges'),
+    path('start', UserCreateFishbreadViewSet.as_view(), name='start'),
+    path('donate', UserDonateViewSet.as_view(), name='donate'),
+    path('history', UserHistoryViewSet.as_view(), name='history'),
 ]
